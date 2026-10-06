@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+enum AppointmentStatus {
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+enum HoldStatus {
+  ACTIVE
+  EXPIRED
+  RELEASED
+  CONSUMED
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  email String @unique
+  passwordHash String
+  role Role @default(PATIENT)
+  isActive Boolean @default(true)
+  tokenVersion Int @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  doctor DoctorProfile?
+  patient PatientProfile?
+}
+model PatientProfile {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user User @relation(fields: [userId], references: [id])
+  appointments Appointment[]
+  holds TemporaryHold[]
+}
+model Specialty {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  doctors DoctorProfile[]
+  appointments Appointment[]
+}
+model DoctorProfile {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  specialtyId String @db.Uuid
+  user User @relation(fields: [userId], references: [id])
+  specialty Specialty @relation(fields: [specialtyId], references: [id])
+  appointmentTypes DoctorAppointmentType[]
+  availability DoctorAvailability[]
+  blockedTimes BlockedTime[]
+  appointments Appointment[]
+  holds TemporaryHold[]
+}
+model AppointmentType {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  durationMinutes Int
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  doctors DoctorAppointmentType[]
+  appointments Appointment[]
+  holds TemporaryHold[]
+}
+model DoctorAppointmentType {
+  doctorId String @db.Uuid
+  appointmentTypeId String @db.Uuid
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id])
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id])
+  @@id([doctorId, appointmentTypeId])
+}
+model DoctorAvailability {
+  id String @id @default(uuid()) @db.Uuid
+  doctorId String @db.Uuid
+  dayOfWeek Int
+  startMinute Int
+  endMinute Int
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id])
+  @@index([doctorId, dayOfWeek])
+}
+model BlockedTime {
+  id String @id @default(uuid()) @db.Uuid
+  doctorId String @db.Uuid
+  startAt DateTime @db.Timestamptz(3)
+  endAt DateTime @db.Timestamptz(3)
+  reason String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id])
+  @@index([doctorId, startAt])
+}
+model TemporaryHold {
+  id String @id @default(uuid()) @db.Uuid
+  patientId String @db.Uuid
+  doctorId String @db.Uuid
+  appointmentTypeId String @db.Uuid
+  startAt DateTime @db.Timestamptz(3)
+  endAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime @db.Timestamptz(3)
+  status HoldStatus @default(ACTIVE)
+  rescheduleOfId String? @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id])
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id])
+  appointment Appointment? @relation("ConfirmedFromHold")
+  rescheduleOf Appointment? @relation("RescheduleHolds", fields: [rescheduleOfId], references: [id])
+  @@index([doctorId, startAt])
+  @@index([patientId, startAt])
+  @@index([status, expiresAt])
+}
+model Appointment {
+  id String @id @default(uuid()) @db.Uuid
+  patientId String @db.Uuid
+  doctorId String @db.Uuid
+  specialtyId String @db.Uuid
+  appointmentTypeId String @db.Uuid
+  holdId String @unique @db.Uuid
+  startAt DateTime @db.Timestamptz(3)
+  endAt DateTime @db.Timestamptz(3)
+  status AppointmentStatus @default(CONFIRMED)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  cancelledAt DateTime? @db.Timestamptz(3)
+  completedAt DateTime? @db.Timestamptz(3)
+  rescheduledToId String? @unique @db.Uuid
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id])
+  specialty Specialty @relation(fields: [specialtyId], references: [id])
+  appointmentType AppointmentType @relation(fields: [appointmentTypeId], references: [id])
+  hold TemporaryHold @relation("ConfirmedFromHold", fields: [holdId], references: [id])
+  rescheduleHolds TemporaryHold[] @relation("RescheduleHolds")
+  rescheduledTo Appointment? @relation("RescheduleHistory", fields: [rescheduledToId], references: [id])
+  rescheduledFrom Appointment? @relation("RescheduleHistory")
+  @@index([doctorId, startAt])
+  @@index([patientId, startAt])
+}
+// Populated exclusively by SQL triggers; GiST constraints are in the integrity migration.
+model ScheduleOccupancy {
+  key String @id
+  doctorId String @db.Uuid
+  patientId String? @db.Uuid
+  startAt DateTime @db.Timestamptz(3)
+  endAt DateTime @db.Timestamptz(3)
+  expiresAt DateTime? @db.Timestamptz(3)
+  @@index([expiresAt])
+}
