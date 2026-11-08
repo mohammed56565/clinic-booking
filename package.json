@@ -17,9 +17,20 @@
     "setup": "npm run db:generate && npm run db:migrate && npm run db:seed"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^9.2.5",
     "prettier": "^3.6.2",
     "typescript": "~5.9.3"
+  },
+  "overrides": {
+    "@nestjs/platform-express": {
+      "multer": "2.5.0"
+    },
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2",
+      "effect": "3.22.4"
+    },
+    "glob@>=9.0.0 <14.0.2": "14.0.4",
+    "minimatch@>=7.0.0 <11.0.1": "11.0.5"
   },
   "engines": {
     "node": ">=22.12.0"

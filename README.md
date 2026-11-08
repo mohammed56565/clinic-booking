@@ -1,14 +1,14 @@
 # Clearwell Clinic — Appointment Booking
 
-A full-stack, single-clinic appointment application built from the supplied BRD. Patients browse doctors, reserve a time for five minutes, confirm, cancel, and safely reschedule. Doctors manage working hours, time off, their calendar, and appointment outcomes. Administrators manage the care team, specialties, appointment types, users, and appointments.
+A full-stack appointment application for a single clinic. Patients browse doctors, reserve a time for five minutes, confirm, cancel, and safely reschedule. Doctors manage working hours, time off, their calendar, and appointment outcomes. Administrators manage the care team, specialties, appointment types, users, and appointments.
 
 ## Technology
 
-React 19, TypeScript, Vite, React Router, Tailwind CSS 4, FullCalendar, NestJS 11, Prisma 6.19, PostgreSQL, JWT, Argon2id, Jest, and Supertest. Dependency versions are locked in `package-lock.json`. No Docker, payments, notifications, medical records, profile photographs, or external calendar integration.
+React 19, TypeScript, Vite, React Router, Tailwind CSS 4, FullCalendar, NestJS 11, Prisma 6.19, PostgreSQL, JWT, Argon2id, Jest, and Supertest. Dependency versions are locked in `package-lock.json`.
 
 ## Run locally
 
-Requirements: Node.js 22.12 or newer, npm, and PostgreSQL 16 or newer. PostgreSQL must include the `btree_gist` extension (included in the standard distribution). The project was verified with Node.js 24 and PostgreSQL 18.
+Requirements: Node.js 22.12 or newer, npm, and PostgreSQL 16 or newer. PostgreSQL must include the `btree_gist` extension (included in the standard distribution). The project was verified with Node.js 24, npm 11.21.2, and PostgreSQL 18.
 
 1. Create a PostgreSQL login and two databases, using an administrator account. Use your own password when prompted:
 
@@ -49,8 +49,6 @@ Requirements: Node.js 22.12 or newer, npm, and PostgreSQL 16 or newer. PostgreSQ
 ### Optional sample data
 
 Set `SEED_DEMO=true` and set `DEMO_PASSWORD` before running `npm run db:seed`. This creates six sample doctors, a patient, Sunday–Thursday split working hours, and a future sample appointment. Rerunning the seed preserves existing passwords and records. Sample accounts are `patient@clinic.test`, `ahmed@clinic.test`, `sara@clinic.test`, `omar@clinic.test`, `nora@clinic.test`, `yousef@clinic.test`, and `leena@clinic.test`; they share your configured demo password. Use only fictional data in a demo.
-
-The prepared local workspace has already been configured. See [LOCAL-DEMO.md](LOCAL-DEMO.md) for its running addresses and sample credentials.
 
 ## Environment variables
 
@@ -99,9 +97,9 @@ npm run test:integration
 
 The integration command migrates the dedicated test database before running. **Integration tests clear records in that database. Never point `TEST_DATABASE_URL` at application data.** The name suffix check is an additional guard.
 
-The automated suite covers registration, authentication, disabled accounts, authorization, durations, slot generation, active/expired holds, doctor and patient overlaps, simultaneous attempts, idempotent confirmation, direct SQL protections, cancellation, safe rescheduling, schedule-edit conflicts, and final outcomes. Results and browser checks are recorded in [VALIDATION.md](docs/VALIDATION.md).
+The automated suite covers registration, authentication, disabled accounts, authorization, durations, slot generation, active/expired holds, doctor and patient overlaps, simultaneous attempts, idempotent confirmation, direct SQL protections, cancellation, safe rescheduling, schedule-edit conflicts, and final outcomes.
 
-Build artifacts are `apps/api/dist` and `apps/web/dist`. `npm run start -w apps/api` starts the compiled API. `npm run preview -w apps/web` previews the frontend build; the preview also uses the Vite proxy. For an actual deployment, serve the frontend and route same-origin `/api` traffic to the NestJS process, configure HTTPS and the allowed origin, provide PostgreSQL, and run `npm run db:migrate`. This delivery runs locally; no public hosting or GitHub repository has been created.
+Build artifacts are `apps/api/dist` and `apps/web/dist`. `npm run start -w apps/api` starts the compiled API. `npm run preview -w apps/web` previews the frontend build; the preview also uses the Vite proxy. For an actual deployment, serve the frontend and route same-origin `/api` traffic to the NestJS process, configure HTTPS and the allowed origin, provide PostgreSQL, and run `npm run db:migrate`.
 
 ## Screenshots
 
@@ -135,16 +133,16 @@ apps/web/src/
   appointments.tsx        Appointment lists, details, dashboards, calendar
   admin.tsx               Catalog, accounts, doctors, availability management
   ui.tsx                  Accessible dialogs, form fields, feedback, shared hooks
-docs/                     Architecture, API reference, validation, screenshots
+docs/                     Architecture, database ERD, and screenshots
 scripts/                  Dedicated test database migration helper
 ```
 
 ## Defined implementation rules
 
-The BRD leaves a few operational choices open. This version uses a 365-day booking horizon and limits each patient to three simultaneous active holds. New slot starts are aligned to the selected duration from the beginning of each working window. Reschedule holds cannot overlap the original appointment; choose a non-overlapping replacement period. Completion and no-show are allowed only after the appointment ends. Working windows cannot cross midnight; use two windows on adjacent days. Blocked periods may cross dates. Existing future appointments prevent conflicting availability edits and blocked time. Deactivation prevents access/new bookings while preserving existing appointments for administrators to resolve explicitly. Historical start/end times and the booked specialty remain attached to the original appointment.
+The application uses a 365-day booking horizon and limits each patient to three simultaneous active holds. New slot starts are aligned to the selected duration from the beginning of each working window. Reschedule holds cannot overlap the original appointment; choose a non-overlapping replacement period. Completion and no-show are allowed only after the appointment ends. Working windows cannot cross midnight; use two windows on adjacent days. Blocked periods may cross dates. Existing future appointments prevent conflicting availability edits and blocked time. Deactivation prevents access/new bookings while preserving existing appointments for administrators to resolve explicitly. Historical start/end times and the booked specialty remain attached to the original appointment.
 
 Timezone conversion uses Luxon and UTC-backed PostgreSQL timestamps. On daylight-saving changes, nonexistent local times and appointments crossing an offset transition are not offered. The default Riyadh timezone has no DST.
 
 ## Future improvements
 
-For a larger clinic, replace the clinic-wide lock with ordered per-resource locks and add pagination. Password recovery, audit logs, multi-instance shared rate limiting, notifications, and deployment operations can be added in a later version. They are not part of this BRD's V1 delivery.
+For a larger clinic, replace the clinic-wide lock with ordered per-resource locks and add pagination. Password recovery, audit logs, multi-instance shared rate limiting, notifications, and deployment operations can be added in a later version.

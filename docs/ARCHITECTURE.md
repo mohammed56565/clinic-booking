@@ -94,7 +94,7 @@ A second constraint applies the same rule to non-null `patientId`. Scheduling re
 
 The lock serializes schedule edits, doctor activation/type assignments, appointment type edits, holds, confirmation, cancellation, blocked time, and outcomes. No network requests occur inside these transactions. Slots are generated on demand, not stored permanently. Availability is a snapshot; creating a hold always checks it again.
 
-For a larger installation, use ordered per-doctor/per-patient locking with the same exclusion constraints. This would need new cross-doctor concurrency tests and careful handling of catalog edits. The present implementation is intentionally for the BRD's single-clinic scale.
+For a larger installation, use ordered per-doctor/per-patient locking with the same exclusion constraints. This would need new cross-doctor concurrency tests and careful handling of catalog edits. The locking strategy is designed for a single-clinic deployment.
 
 ## Hold and reschedule lifecycle
 
@@ -110,7 +110,7 @@ The confirmation transaction checks ownership, expiry, future start, doctor acti
 
 For rescheduling, `rescheduleOfId` binds the new hold to the original appointment. The original is checked again at confirmation. The transaction consumes the new hold, cancels the original, inserts the new appointment, and saves `rescheduledToId`. A forced database-failure test verifies the original and hold are restored if insertion fails after the cancellation statement.
 
-New reschedule periods cannot overlap the original appointment. This preserves the literal BRD rule that a patient's active hold cannot overlap an existing confirmed appointment, while the original remains valid throughout the process.
+New reschedule periods cannot overlap the original appointment. A patient's active hold cannot overlap an existing confirmed appointment, while the original remains valid throughout the process.
 
 ## Appointment outcomes
 
